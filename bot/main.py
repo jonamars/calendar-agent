@@ -41,7 +41,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             end_time = datetime.fromisoformat(end_time_str)
 
             caldav_client.add_event(summary, start_time, end_time)
-            reply = f"Event created: {summary}\nFrom: {start_time.strftime('%Y-%m-%d %H:%M')}\nTo: {end_time.strftime('%Y-%m-%d %H:%M')}"
             
         elif action == "update":
             uid = parsed.get('uid')
@@ -57,7 +56,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             new_end_time = datetime.fromisoformat(re.sub(r"Z|([+-]\d{2}:\d{2})$", "", new_end_str)) if new_end_str else None
             
             caldav_client.update_event(uid, new_summary, new_start_time, new_end_time)
-            reply = f"Event updated: {new_summary}\nFrom: {new_start_time.strftime('%Y-%m-%d %H:%M')}\nTo: {new_end_time.strftime('%Y-%m-%d %H:%M')}"
 
         elif action == "delete":
             uid = parsed.get('uid')
@@ -66,12 +64,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
             
             caldav_client.delete_event(uid)
-            reply = "Event deleted."
             
         else:
-            reply = "I'm not sure what you want me to do with this event."
+            await update.message.reply_text("I'm not sure what you want me to do with this event.")
+            return
 
-        await update.message.reply_text(reply)
+        bot_response = parsed.get('bot_response', "Alright, I've updated your calendar!")
+        await update.message.reply_text(bot_response)
         
     except Exception as e:
         print(f"Error: {e}")
