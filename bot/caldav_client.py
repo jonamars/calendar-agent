@@ -17,6 +17,17 @@ def get_client():
         password=CALDAV_PASSWORD
     )
 
+SUPPORTED_CALENDARS = ["Personal", "Work", "Fitness", "Social", "Other"]
+
+def initialize_calendars():
+    """Ensure all predefined calendars exist on the CalDAV server."""
+    client = get_client()
+    for cal_name in SUPPORTED_CALENDARS:
+        try:
+            _get_or_create_calendar(client, name=cal_name)
+        except Exception as e:
+            print(f"Warning: Failed to ensure calendar '{cal_name}' exists: {e}")
+
 def _get_or_create_calendar(client: caldav.DAVClient, name: str = "AI Calendar"):
     principal = client.principal()
     calendars = principal.calendars()
@@ -34,12 +45,12 @@ def _get_or_create_calendar(client: caldav.DAVClient, name: str = "AI Calendar")
                 return cal
         raise
 
-def add_event(summary: str, start_time: datetime, end_time: datetime):
-    """Adds an event to the default AI Calendar in the CalDAV server."""
+def add_event(summary: str, start_time: datetime, end_time: datetime, calendar_name: str = "Personal"):
+    """Adds an event to the specified Calendar in the CalDAV server."""
     print("Get client...")
     client = get_client()
     print("Get calendar...")
-    calendar = _get_or_create_calendar(client)
+    calendar = _get_or_create_calendar(client, name=calendar_name)
     print("Add event...")
     event = calendar.save_event(
         dtstart=start_time,
@@ -50,45 +61,52 @@ def add_event(summary: str, start_time: datetime, end_time: datetime):
 
 def get_existing_events():
     client = get_client()
-    calendar = _get_or_create_calendar(client)
     events = []
-    for event in calendar.events():
-        event.load()
-        try:
-            v_inst = event.vobject_instance
-        except Exception:
-            continue
-        if not hasattr(v_inst, 'vevent'):
-            continue
-        vevent = v_inst.vevent
-        if hasattr(vevent, 'uid') and hasattr(vevent, 'summary') and hasattr(vevent, 'dtstart'):
-            events.append({
-                "uid": getattr(vevent, 'uid').value,
-                "summary": getattr(vevent, 'summary').value,
-                "start": str(getattr(vevent, 'dtstart').value)
-            })
+    for calendar in client.principal().calendars():
+        for event in calendar.events():
+            event.load()
+            try:
+                v_inst = event.vobject_instance
+            except Exception:
+                continue
+            if not hasattr(v_inst, 'vevent'):
+                continue
+            vevent = v_inst.vevent
+            if hasattr(vevent, 'uid') and hasattr(vevent, 'summary') and hasattr(vevent, 'dtstart'):
+                events.append({
+                    "uid": getattr(vevent, 'uid').value,
+                    "summary": getattr(vevent, 'summary').value,
+                    "start": str(getattr(vevent, 'dtstart').value),
+                    "calendar_name": calendar.name
+                })
     return events
 
-def find_event_by_uid(calendar, uid: str):
-    try:
-        return calendar.event_by_uid(uid)
-    except Exception:
-        return None
-
-def update_event(uid: str, new_summary: str, new_start_time: datetime, new_end_time: datetime):
+def find_event_by_uid(uid: str):
     client = get_client()
-    calendar = _get_or_create_calendar(client)
-    event = find_event_by_uid(calendar, uid)
+    for calendar in client.principal().calendars():
+        try:
+            event = calendar.event_by_uid(uid)
+            if event:
+                return event, calendar
+        except Exception:
+            pass
+    return None, None
+
+def update_event(uid: str, new_summary: str, new_start_time: datetime, new_end_time: datetime, new_calendar_name: str = None):
+    event, old_calendar = find_event_by_uid(uid)
     if not event:
         raise ValueError(f"Could not find event with uid '{uid}'")
     
     event.delete()
-    return calendar.save_event(dtstart=new_start_time, dtend=new_end_time, summary=new_summary)
+    
+    client = get_client()
+    target_calendar_name = new_calendar_name if new_calendar_name else old_calendar.name
+    target_calendar = _get_or_create_calendar(client, name=target_calendar_name)
+    
+    return target_calendar.save_event(dtstart=new_start_time, dtend=new_end_time, summary=new_summary)
 
 def delete_event(uid: str):
-    client = get_client()
-    calendar = _get_or_create_calendar(client)
-    event = find_event_by_uid(calendar, uid)
+    event, _ = find_event_by_uid(uid)
     if not event:
         raise ValueError(f"Could not find event with uid '{uid}'")
     

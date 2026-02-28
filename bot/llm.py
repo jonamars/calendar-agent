@@ -18,6 +18,7 @@ class EventDetails(BaseModel):
     end_time_iso: Optional[str] = Field(None, description="The end time in strict ISO 8601 without timezone attached (e.g., '2026-02-28T15:00:00'). Assume 1h default.")
     uid: Optional[str] = Field(None, description="If updating or deleting, the exact UID of the event to modify from the provided context.")
     bot_response: str = Field(description="A friendly, conversational confirmation message to send back to the user on Telegram detailing the action.")
+    calendar: Optional[str] = Field(None, description="The name of the calendar to categorize the event into (e.g., 'Work', 'Personal').")
     is_valid: bool = Field(description="True if an event intent can be parsed, False if not.")
 
 def parse_event_intent(user_text: str, current_time_iso: str, existing_events: list = []) -> dict:
@@ -39,17 +40,19 @@ Existing calendar events:
 2. For "create": Provide a summary, start_time_iso, and end_time_iso. If no time is provided, use a time that is reasonable for the type of event.
 3. For "update": Provide the EXACT `uid` of the event to modify from the existing events above. Provide the NEW summary, start_time_iso, and end_time_iso. Retain original values for any fields the user does not wish to change.
 4. For "delete": Provide the EXACT `uid` of the event to delete.
-5. Format the `summary` nicely: Use strict Title Case (capitalize all major words, rest lowercase (e.g. lowercase 'with' and 'the')). Include ONLY what the event is, excluding any temporal or temporal-relative words (omit "tomorrow", "at 4pm", "on Tuesday", etc.). Append a single relevant emoji at the end (e.g., "Lunch with Alice 🍱").
+5. Categorize the event into a logical `calendar`. You MUST choose exactly one from this list: ["Personal", "Work", "Fitness", "Social", "Other"]. If updating an event, omit this unless the user specifically wants to move it.
+6. Format the `summary` nicely Use strict Title Case (Modern Language Association Handbook). Include ONLY what the event is, excluding any temporal or temporal-relative words (omit "tomorrow", "at 4pm", "on Tuesday", etc.). Append a single relevant emoji at the end (e.g., "Lunch with Alice 🍱").
 
 # OUTPUT FORMAT
 Return a raw, unmarkdown-wrapped JSON object strictly adhering to this schema. DO NOT output ```json codeblocks.
 {{
   "action": "create" | "update" | "delete",
-  "summary": "String (formatted event title without time references, with emoji)",
+  "summary": "String (formatted event title (in strict title case of the Modern Language Association Handbook) without time references, with emoji)",
   "start_time_iso": "String (ISO 8601 format, e.g., '2026-02-28T14:00:00')",
   "end_time_iso": "String (ISO 8601 format, e.g., '2026-02-28T15:00:00')",
   "uid": "String (Target event UID, only for update or delete)",
   "bot_response": "String (A friendly, conversational confirmation message to the user detailing your action. ALWAYS use European 24-hour formatting for any times mentioned, e.g., '14:00' instead of '2 PM'). Also european ordered dates.",
+  "calendar": "String (Must be exactly one of: 'Personal', 'Work', 'Fitness', 'Social', 'Other')",
   "is_valid": true | false (True if you successfully parsed the calendar intent, false otherwise)
 }}
 """
