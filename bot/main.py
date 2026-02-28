@@ -33,6 +33,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         action = parsed.get('action')
         
         if action == "create":
+            calendar_name = parsed.get('calendar', 'Personal')
             summary = parsed.get('summary')
             start_time_str = re.sub(r"Z|([+-]\d{2}:\d{2})$", "", parsed['start_time_iso'])
             end_time_str = re.sub(r"Z|([+-]\d{2}:\d{2})$", "", parsed['end_time_iso'])
@@ -49,7 +50,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             start_time = start_time.astimezone(timezone.utc)
             end_time = end_time.astimezone(timezone.utc)
 
-            caldav_client.add_event(summary, start_time, end_time)
+            caldav_client.add_event(summary, start_time, end_time, calendar_name)
             
         elif action == "update":
             uid = parsed.get('uid')
@@ -57,6 +58,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("I couldn't identify which event to update.")
                 return
             
+            calendar_name = parsed.get('calendar')
             new_summary = parsed.get('summary')
             new_start_str = parsed.get('start_time_iso')
             new_end_str = parsed.get('end_time_iso')
@@ -78,7 +80,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     new_end_time = new_end_time.replace(tzinfo=local_tz)
                 new_end_time = new_end_time.astimezone(timezone.utc)
             
-            caldav_client.update_event(uid, new_summary, new_start_time, new_end_time)
+            caldav_client.update_event(uid, new_summary, new_start_time, new_end_time, calendar_name)
 
         elif action == "delete":
             uid = parsed.get('uid')
@@ -112,6 +114,12 @@ def main():
     if not token or token == "your_telegram_bot_token_here":
         print("Please configure your .env file with TELEGRAM_TOKEN and GOOGLE_API_KEY.")
         return
+        
+    print("Ensuring calendar categories exist...")
+    try:
+        caldav_client.initialize_calendars()
+    except Exception as e:
+        print(f"Warning: Could not initialize calendars: {e}")
         
     app = ApplicationBuilder().token(token).build()
     
