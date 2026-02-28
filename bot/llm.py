@@ -57,4 +57,7 @@ Return the result strictly as JSON. Make sure the output fits the Pydantic schem
     except Exception as e:
         print(f"Error calling Gemini: {e}")
         traceback.print_exc()
+        error_str = str(e).lower()
+        if "429" in error_str and "quota" in error_str:
+            raise Exception("GEMINI_QUOTA_REACHED") from e
         return None

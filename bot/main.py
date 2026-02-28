@@ -74,7 +74,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     except Exception as e:
         print(f"Error: {e}")
-        await update.message.reply_text(f"Sorry, an error occurred while scheduling your event: {e}")
+        if "GEMINI_QUOTA_REACHED" in str(e):
+            await update.message.reply_text("I've reached my Gemini API free tier quota limit for now. Please wait a bit and try again later!")
+        else:
+            await update.message.reply_text(f"Sorry, an error occurred while scheduling your event: {e}")
 
 def main():
     token = os.getenv("TELEGRAM_TOKEN")
