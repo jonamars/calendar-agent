@@ -27,30 +27,31 @@ def parse_event_intent(user_text: str, current_time_iso: str, existing_events: l
     client = genai.Client(api_key=GOOGLE_API_KEY)
     
     prompt = f"""
-You are an AI calendar assistant. Extract event details from the user's text.
-The user might want to CREATE, UPDATE, or DELETE an event.
-The current local time is: {current_time_iso}.
-All provided times will be assumed to be in the user's local timezone.
+You are an AI calendar assistant capable of creating, updating, and deleting events.
 
-Here are the user's existing calendar events mapped by UID:
+# CONTEXT
+Current local time: {current_time_iso} (Assume all user times are in this local timezone)
+Existing calendar events:
 {json.dumps(existing_events, indent=2)}
 
-If the user wants to create an event, provide summary, start_time_iso, and end_time_iso.
-If the user wants to update an event, you MUST provide the EXACT 'uid' from the existing events above that corresponds to their request. ALSO provide the NEW summary, start_time_iso, and end_time_iso corresponding to the modifications. Retain the original start/end times if the user only specifies a name change, or retain the original name if the user only specifies a time change.
-If the user wants to delete an event, you MUST provide the EXACT 'uid' from the existing events above.
+# INSTRUCTIONS
+1. Analyze the user request to determine the intended action: "create", "update", or "delete".
+2. For "create": Provide a summary, start_time_iso, and end_time_iso. If no time is provided, use a time that is reasonable for the type of event.
+3. For "update": Provide the EXACT `uid` of the event to modify from the existing events above. Provide the NEW summary, start_time_iso, and end_time_iso. Retain original values for any fields the user does not wish to change.
+4. For "delete": Provide the EXACT `uid` of the event to delete.
+5. Format the `summary` nicely: Use strict Title Case (capitalize all major words, rest lowercase (e.g. lowercase 'with' and 'the')). Include ONLY what the event is, excluding any temporal or temporal-relative words (omit "tomorrow", "at 4pm", "on Tuesday", etc.). Append a single relevant emoji at the end (e.g., "Lunch with Alice 🍱").
 
-IMPORTANT: Always format the resulting 'summary' nicely. Capitalize it professionally and append a single, relevant emoji at the end (e.g. "Lunch with Alice 🍱").
-
-Return the result strictly as a raw JSON object string. Do not wrap it in markdown block quotes (```json). Your response must be completely parsable by Python `json.loads()`.
-
-You MUST include ALL of the following keys in your JSON response:
-- "action": string ("create", "update", or "delete")
-- "summary": string (the formatted event title, optional)
-- "start_time_iso": string (ISO 8601 formatting, optional)
-- "end_time_iso": string (ISO 8601 formatting, optional)
-- "uid": string (the target event UID, optional)
-- "bot_response": string (a friendly, conversational confirmation message to send back to the user detailing what you did)
-- "is_valid": boolean (true if you understood the request, false otherwise)
+# OUTPUT FORMAT
+Return a raw, unmarkdown-wrapped JSON object strictly adhering to this schema. DO NOT output ```json codeblocks.
+{{
+  "action": "create" | "update" | "delete",
+  "summary": "String (formatted event title without time references, with emoji)",
+  "start_time_iso": "String (ISO 8601 format, e.g., '2026-02-28T14:00:00')",
+  "end_time_iso": "String (ISO 8601 format, e.g., '2026-02-28T15:00:00')",
+  "uid": "String (Target event UID, only for update or delete)",
+  "bot_response": "String (A friendly, conversational confirmation message to the user detailing your action. ALWAYS use European 24-hour formatting for any times mentioned, e.g., '14:00' instead of '2 PM'). Also european ordered dates.",
+  "is_valid": true | false (True if you successfully parsed the calendar intent, false otherwise)
+}}
 """
     
     try:

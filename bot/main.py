@@ -21,7 +21,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     now = datetime.now().astimezone()
     current_time_iso = now.isoformat(timespec='seconds')
     
-    await update.message.reply_text("Thinking...")
+    await update.message.reply_text("🤔")
 
     try:
         existing_events = caldav_client.get_existing_events()
