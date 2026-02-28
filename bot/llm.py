@@ -39,6 +39,8 @@ If the user wants to create an event, provide summary, start_time_iso, and end_t
 If the user wants to update an event, you MUST provide the EXACT 'uid' from the existing events above that corresponds to their request. ALSO provide the NEW summary, start_time_iso, and end_time_iso corresponding to the modifications. Retain the original start/end times if the user only specifies a name change, or retain the original name if the user only specifies a time change.
 If the user wants to delete an event, you MUST provide the EXACT 'uid' from the existing events above.
 
+IMPORTANT: Always format the resulting 'summary' nicely. Capitalize it professionally and append a single, relevant emoji at the end (e.g. "Lunch with Alice 🍱").
+
 Return the result strictly as JSON. Make sure the output fits the Pydantic schema structure logic.
 """
     
