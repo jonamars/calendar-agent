@@ -1,0 +1,13 @@
+[server]
+hosts = 0.0.0.0:5232
+max_connections = 20
+max_sync_tokens = 1000
+
+[auth]
+type = htpasswd
+htpasswd_filename = /etc/radicale/users
+htpasswd_encryption = plain
+
+[storage]
+type = multifilesystem
+filesystem_folder = /data/collections

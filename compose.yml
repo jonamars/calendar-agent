@@ -1,0 +1,22 @@
+services:
+  radicale:
+    image: tomsquest/docker-radicale:latest
+    container_name: radicale
+    ports:
+      - "5232:5232"
+    volumes:
+      - ./radicale/data:/data
+      - ./radicale/config:/etc/radicale/config:ro
+      - ./radicale/users:/etc/radicale/users:ro
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  bot:
+    build: ./bot
+    container_name: ai-cal-bot
+    depends_on:
+      - radicale
+    env_file:
+      - .env
+    restart: unless-stopped
