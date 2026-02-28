@@ -1,7 +1,7 @@
 # AI Calendar Manager
 
-AI Calendar Manager is a powerful, locally hosted Google Gemini-driven Telegram
-bot that manages a Radicale CalDAV server. Simply chat with your bot in natural
+AI Calendar Manager is a powerful, locally hosted Google AI-driven Telegram bot
+that manages a Radicale CalDAV server. Simply chat with your bot in natural
 language, and it handles creating, updating, and deleting events on your
 personal calendar flawlessly.
 
@@ -9,7 +9,7 @@ personal calendar flawlessly.
 
 - **Natural Language Parsing**: Just text "Schedule a meeting with Jona for
   tomorrow at 3 PM". No clunky calendar interfaces required.
-- **Context-Aware Modifying**: Gemini understands your existing events! Text
+- **Context-Aware Modifying**: The AI understands your existing events! Text
   "Move my meeting with Jona to 5 PM" or "Cancel my 3 PM meeting", and the bot
   will accurately modify or delete the corresponding event.
 - **CalDAV Synchronization**: Includes a fully functional Radicale CalDAV
@@ -26,7 +26,7 @@ personal calendar flawlessly.
 - [Docker](https://docs.docker.com/get-docker/) and
   [Docker Compose](https://docs.docker.com/compose/install/)
 - A Telegram Bot Token from [@BotFather](https://t.me/botfather)
-- A [Google Gemini API Key](https://aistudio.google.com/app/apikey)
+- A [Google AI API Key](https://aistudio.google.com/app/apikey)
 
 ## Quick Start Setup
 
@@ -45,7 +45,7 @@ Copy the example configuration file:
 cp env.example .env
 ```
 
-Open `.env` and paste your genuine `TELEGRAM_TOKEN` and `GEMINI_API_KEY`.
+Open `.env` and paste your genuine `TELEGRAM_TOKEN` and `GOOGLE_API_KEY`.
 
 ```bash
 cp radicale/users.example users
