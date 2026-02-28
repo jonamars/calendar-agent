@@ -1,0 +1,12 @@
+[project]
+name = "ai-calmanager-bot"
+version = "0.1.0"
+description = "AI Calendar Manager Telegram Bot"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "caldav>=1.4.0",
+    "google-genai>=0.4.0",
+    "python-dotenv>=1.0.1",
+    "python-telegram-bot>=21.4",
+]
