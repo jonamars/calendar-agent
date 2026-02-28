@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-MODEL = "gemini-2.5-flash"
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+MODEL = "gemma-3-27b-it"
 
 class EventDetails(BaseModel):
     action: Literal["create", "update", "delete"] = Field(description="The action the user wants to take.")
@@ -21,10 +21,10 @@ class EventDetails(BaseModel):
     is_valid: bool = Field(description="True if an event intent can be parsed, False if not.")
 
 def parse_event_intent(user_text: str, current_time_iso: str, existing_events: list = []) -> dict:
-    if not GEMINI_API_KEY:
-        raise ValueError("GEMINI_API_KEY not found.")
+    if not GOOGLE_API_KEY:
+        raise ValueError("GOOGLE_API_KEY not found.")
         
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    client = genai.Client(api_key=GOOGLE_API_KEY)
     
     prompt = f"""
 You are an AI calendar assistant. Extract event details from the user's text.
@@ -41,23 +41,40 @@ If the user wants to delete an event, you MUST provide the EXACT 'uid' from the 
 
 IMPORTANT: Always format the resulting 'summary' nicely. Capitalize it professionally and append a single, relevant emoji at the end (e.g. "Lunch with Alice 🍱").
 
-Return the result strictly as JSON. Make sure the output fits the Pydantic schema structure logic.
+Return the result strictly as a raw JSON object string. Do not wrap it in markdown block quotes (```json). Your response must be completely parsable by Python `json.loads()`.
+
+You MUST include ALL of the following keys in your JSON response:
+- "action": string ("create", "update", or "delete")
+- "summary": string (the formatted event title, optional)
+- "start_time_iso": string (ISO 8601 formatting, optional)
+- "end_time_iso": string (ISO 8601 formatting, optional)
+- "uid": string (the target event UID, optional)
+- "bot_response": string (a friendly, conversational confirmation message to send back to the user detailing what you did)
+- "is_valid": boolean (true if you understood the request, false otherwise)
 """
     
     try:
         response = client.models.generate_content(
             model=MODEL,
             contents=f"{prompt}\nUser request: {user_text}",
-            config={
-                'response_mime_type': 'application/json',
-                'response_schema': EventDetails,
-            },
         )
-        return json.loads(response.text)
+        text = response.text.strip()
+        if text.startswith("```json"):
+            text = text[7:]
+        elif text.startswith("```"):
+            text = text[3:]
+        if text.endswith("```"):
+            text = text[:-3]
+        text = text.strip()
+        
+        parsed_data = json.loads(text)
+        # Ensure it fits the Pydantic model by passing it through (optional but safe)
+        event_details = EventDetails(**parsed_data)
+        return event_details.model_dump()
     except Exception as e:
-        print(f"Error calling Gemini: {e}")
+        print(f"Error calling AI API: {e}")
         traceback.print_exc()
         error_str = str(e).lower()
         if "429" in error_str and "quota" in error_str:
-            raise Exception("GEMINI_QUOTA_REACHED") from e
+            raise Exception("AI_QUOTA_REACHED") from e
         return None

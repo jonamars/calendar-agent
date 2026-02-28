@@ -74,8 +74,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     except Exception as e:
         print(f"Error: {e}")
-        if "GEMINI_QUOTA_REACHED" in str(e):
-            await update.message.reply_text("I've reached my Gemini API free tier quota limit for now. Please wait a bit and try again later!")
+        if "AI_QUOTA_REACHED" in str(e):
+            await update.message.reply_text("I've reached my Google AI API free tier quota limit for now. Please wait a bit and try again later!")
         else:
             await update.message.reply_text(f"Sorry, an error occurred while scheduling your event: {e}")
 
@@ -84,10 +84,10 @@ def main():
     # Print to test if env is loaded
     print("Loading env variables...")
     print(os.getenv("TELEGRAM_TOKEN"))
-    print(os.getenv("GEMINI_API_KEY"))
+    print(os.getenv("GOOGLE_API_KEY"))
 
     if not token or token == "your_telegram_bot_token_here":
-        print("Please configure your .env file with TELEGRAM_TOKEN and GEMINI_API_KEY.")
+        print("Please configure your .env file with TELEGRAM_TOKEN and GOOGLE_API_KEY.")
         return
         
     app = ApplicationBuilder().token(token).build()
