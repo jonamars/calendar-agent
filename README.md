@@ -48,7 +48,7 @@ cp env.example .env
 Open `.env` and paste your genuine `TELEGRAM_TOKEN` and `GOOGLE_API_KEY`.
 
 ```bash
-cp radicale/users.example users
+cp radicale/users.example radicale/users
 ```
 
 Update to the username/password of your choosing.
