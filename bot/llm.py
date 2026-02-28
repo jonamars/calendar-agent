@@ -67,6 +67,8 @@ You MUST include ALL of the following keys in your JSON response:
             text = text[:-3]
         text = text.strip()
         
+        print(f"Raw LLM Response:\n{text}")
+        
         parsed_data = json.loads(text)
         # Ensure it fits the Pydantic model by passing it through (optional but safe)
         event_details = EventDetails(**parsed_data)
