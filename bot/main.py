@@ -1,6 +1,6 @@
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 from telegram import Update
@@ -18,7 +18,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
     # Get local time and simple ISO format for the LLM
     # E.g., '2026-02-28T11:20:00'
-    now = datetime.now()
+    now = datetime.now().astimezone()
     current_time_iso = now.isoformat(timespec='seconds')
     
     await update.message.reply_text("Thinking...")
@@ -36,9 +36,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             summary = parsed.get('summary')
             start_time_str = re.sub(r"Z|([+-]\d{2}:\d{2})$", "", parsed['start_time_iso'])
             end_time_str = re.sub(r"Z|([+-]\d{2}:\d{2})$", "", parsed['end_time_iso'])
-
+            
             start_time = datetime.fromisoformat(start_time_str)
             end_time = datetime.fromisoformat(end_time_str)
+            
+            local_tz = now.tzinfo
+            if start_time.tzinfo is None:
+                start_time = start_time.replace(tzinfo=local_tz)
+            if end_time.tzinfo is None:
+                end_time = end_time.replace(tzinfo=local_tz)
+
+            start_time = start_time.astimezone(timezone.utc)
+            end_time = end_time.astimezone(timezone.utc)
 
             caldav_client.add_event(summary, start_time, end_time)
             
@@ -52,8 +61,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             new_start_str = parsed.get('start_time_iso')
             new_end_str = parsed.get('end_time_iso')
             
-            new_start_time = datetime.fromisoformat(re.sub(r"Z|([+-]\d{2}:\d{2})$", "", new_start_str)) if new_start_str else None
-            new_end_time = datetime.fromisoformat(re.sub(r"Z|([+-]\d{2}:\d{2})$", "", new_end_str)) if new_end_str else None
+            local_tz = now.tzinfo
+            new_start_time = None
+            if new_start_str:
+                new_start_str = re.sub(r"Z|([+-]\d{2}:\d{2})$", "", new_start_str)
+                new_start_time = datetime.fromisoformat(new_start_str)
+                if new_start_time.tzinfo is None:
+                    new_start_time = new_start_time.replace(tzinfo=local_tz)
+                new_start_time = new_start_time.astimezone(timezone.utc)
+            
+            new_end_time = None
+            if new_end_str:
+                new_end_str = re.sub(r"Z|([+-]\d{2}:\d{2})$", "", new_end_str)
+                new_end_time = datetime.fromisoformat(new_end_str)
+                if new_end_time.tzinfo is None:
+                    new_end_time = new_end_time.replace(tzinfo=local_tz)
+                new_end_time = new_end_time.astimezone(timezone.utc)
             
             caldav_client.update_event(uid, new_summary, new_start_time, new_end_time)
 

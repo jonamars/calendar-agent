@@ -11,6 +11,9 @@ COPY pyproject.toml .
 # Install dependencies (this creates a cached layer)
 RUN uv sync --no-install-project
 
+# Expose standard output to docker logs immediately
+ENV PYTHONUNBUFFERED=1
+
 # Copy the rest of the application
 COPY . .
 
