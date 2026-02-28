@@ -17,6 +17,7 @@ class EventDetails(BaseModel):
     start_time_iso: Optional[str] = Field(None, description="The start time in strict ISO 8601 without timezone attached (e.g., '2026-02-28T14:00:00')")
     end_time_iso: Optional[str] = Field(None, description="The end time in strict ISO 8601 without timezone attached (e.g., '2026-02-28T15:00:00'). Assume 1h default.")
     uid: Optional[str] = Field(None, description="If updating or deleting, the exact UID of the event to modify from the provided context.")
+    bot_response: str = Field(description="A friendly, conversational confirmation message to send back to the user on Telegram detailing the action.")
     is_valid: bool = Field(description="True if an event intent can be parsed, False if not.")
 
 def parse_event_intent(user_text: str, current_time_iso: str, existing_events: list = []) -> dict:
