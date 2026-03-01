@@ -5,7 +5,9 @@ that manages a Radicale CalDAV server. Simply chat with your bot in natural
 language, and it handles creating, updating, and deleting events on your
 personal calendar flawlessly.
 
-![hippo](https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExY3llZjVwNzhwZHgzc3BtZHh3emlrNG9idXM3MTBlNXNiZXdtZjcwOCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l2YWxPbinlJYX5zMc/giphy.gif)
+<p align="center">
+  <img src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExY3llZjVwNzhwZHgzc3BtZHh3emlrNG9idXM3MTBlNXNiZXdtZjcwOCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l2YWxPbinlJYX5zMc/giphy.gif" alt="calendar">
+</p>
 
 ## Features
 
