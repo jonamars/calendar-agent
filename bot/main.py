@@ -21,12 +21,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     now = datetime.now().astimezone()
     current_time_iso = now.isoformat(timespec='seconds')
     
-    await update.message.reply_text("🤔")
+    thinking_message = await update.message.reply_text("🤔")
 
     try:
         existing_events = caldav_client.get_existing_events()
         parsed = llm.parse_event_intent(user_text, current_time_iso, existing_events)
         if not parsed or not parsed.get('is_valid'):
+            await thinking_message.delete()
             await update.message.reply_text("I couldn't understand an event request from that.")
             return
 
@@ -55,6 +56,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif action == "update":
             uid = parsed.get('uid')
             if not uid:
+                await thinking_message.delete()
                 await update.message.reply_text("I couldn't identify which event to update.")
                 return
             
@@ -85,20 +87,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif action == "delete":
             uid = parsed.get('uid')
             if not uid:
+                await thinking_message.delete()
                 await update.message.reply_text("I couldn't identify which event to delete.")
                 return
             
             caldav_client.delete_event(uid)
             
         else:
+            await thinking_message.delete()
             await update.message.reply_text("I'm not sure what you want me to do with this event.")
             return
 
         bot_response = parsed.get('bot_response', "Alright, I've updated your calendar!")
+        await thinking_message.delete()
         await update.message.reply_text(bot_response)
         
     except Exception as e:
         print(f"Error: {e}")
+        await thinking_message.delete()
         if "AI_QUOTA_REACHED" in str(e):
             await update.message.reply_text("I've reached my Google AI API free tier quota limit for now. Please wait a bit and try again later!")
         else:
