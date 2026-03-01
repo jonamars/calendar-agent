@@ -27,35 +27,16 @@ def parse_event_intent(user_text: str, current_time_iso: str, existing_events: l
         
     client = genai.Client(api_key=GOOGLE_API_KEY)
     
-    prompt = f"""
-You are an AI calendar assistant capable of creating, updating, and deleting events.
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    prompt_path = os.path.join(base_dir, "prompts", "event_parsing.txt")
+    print(prompt_path)
+    with open(prompt_path, "r", encoding="utf-8") as f:
+        prompt_template = f.read()
 
-# CONTEXT
-Current local time: {current_time_iso} (Assume all user times are in this local timezone)
-Existing calendar events:
-{json.dumps(existing_events, indent=2)}
-
-# INSTRUCTIONS
-1. Analyze the user request to determine the intended action: "create", "update", or "delete".
-2. For "create": Provide a summary, start_time_iso, and end_time_iso. If no time is provided, use a time that is reasonable for the type of event.
-3. For "update": Provide the EXACT `uid` of the event to modify from the existing events above. Provide the NEW summary, start_time_iso, and end_time_iso. Retain original values for any fields the user does not wish to change.
-4. For "delete": Provide the EXACT `uid` of the event to delete.
-5. Categorize the event into a logical `calendar`. You MUST choose exactly one from this list: ["Personal", "Work", "Fitness", "Social", "Other"]. If updating an event, omit this unless the user specifically wants to move it.
-6. Format the `summary` nicely Use strict Title Case (Modern Language Association Handbook). Include ONLY what the event is, excluding any temporal or temporal-relative words (omit "tomorrow", "at 4pm", "on Tuesday", etc.). Append a single relevant emoji at the end (e.g., "Lunch with Alice 🍱").
-
-# OUTPUT FORMAT
-Return a raw, unmarkdown-wrapped JSON object strictly adhering to this schema. DO NOT output ```json codeblocks.
-{{
-  "action": "create" | "update" | "delete",
-  "summary": "String (formatted event title (in strict title case of the Modern Language Association Handbook) without time references, with emoji)",
-  "start_time_iso": "String (ISO 8601 format, e.g., '2026-02-28T14:00:00')",
-  "end_time_iso": "String (ISO 8601 format, e.g., '2026-02-28T15:00:00')",
-  "uid": "String (Target event UID, only for update or delete)",
-  "bot_response": "String (A friendly, conversational confirmation message to the user detailing your action. ALWAYS use European 24-hour formatting for any times mentioned, e.g., '14:00' instead of '2 PM'). Also european ordered dates.",
-  "calendar": "String (Must be exactly one of: 'Personal', 'Work', 'Fitness', 'Social', 'Other')",
-  "is_valid": true | false (True if you successfully parsed the calendar intent, false otherwise)
-}}
-"""
+    prompt = prompt_template.format(
+        current_time_iso=current_time_iso,
+        existing_events=json.dumps(existing_events, indent=2)
+    )
     
     try:
         response = client.models.generate_content(
