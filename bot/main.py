@@ -23,15 +23,42 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     thinking_message = await update.message.reply_text("🤔")
 
+    # Access or create conversation history
+    history = context.user_data.setdefault('history', [])
+
+    # Build history string excluding the current message
+    history_str = ""
+    if history:
+        history_str = "\n".join([f"{msg['role'].capitalize()}: {msg['text']}" for msg in history])
+        
+    # Now append the current user message to the tracked history
+    history.append({"role": "user", "text": user_text})
+
     try:
         existing_events = caldav_client.get_existing_events()
-        parsed = llm.parse_event_intent(user_text, current_time_iso, existing_events)
-        if not parsed or not parsed.get('is_valid'):
-            await thinking_message.delete()
-            await update.message.reply_text("I couldn't understand an event request from that.")
-            return
+        parsed = llm.parse_event_intent(user_text, current_time_iso, existing_events, history_str)
+        action = parsed.get('action') if parsed else None
 
-        action = parsed.get('action')
+        if not parsed:
+            await thinking_message.delete()
+            error_msg = "I couldn't understand an event request from that."
+            await update.message.reply_text(error_msg)
+            history.append({"role": "assistant", "text": error_msg})
+            return
+            
+        if not parsed.get('is_valid') and action != "ask_clarification":
+            await thinking_message.delete()
+            error_msg = parsed.get('bot_response') or "I couldn't understand an event request from that."
+            await update.message.reply_text(error_msg)
+            history.append({"role": "assistant", "text": error_msg})
+            return
+            
+        if action == "ask_clarification":
+            await thinking_message.delete()
+            clarify_msg = parsed.get('bot_response') or "Could you clarify that?"
+            await update.message.reply_text(clarify_msg)
+            history.append({"role": "assistant", "text": clarify_msg})
+            return
         
         if action == "create":
             calendar_name = parsed.get('calendar', 'Personal')
@@ -57,7 +84,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             uid = parsed.get('uid')
             if not uid:
                 await thinking_message.delete()
-                await update.message.reply_text("I couldn't identify which event to update.")
+                error_msg = "I couldn't identify which event to update."
+                await update.message.reply_text(error_msg)
+                history.append({"role": "assistant", "text": error_msg})
                 return
             
             calendar_name = parsed.get('calendar')
@@ -88,20 +117,29 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             uid = parsed.get('uid')
             if not uid:
                 await thinking_message.delete()
-                await update.message.reply_text("I couldn't identify which event to delete.")
+                error_msg = "I couldn't identify which event to delete."
+                await update.message.reply_text(error_msg)
+                history.append({"role": "assistant", "text": error_msg})
                 return
             
             caldav_client.delete_event(uid)
             
         else:
             await thinking_message.delete()
-            await update.message.reply_text("I'm not sure what you want me to do with this event.")
+            error_msg = "I'm not sure what you want me to do with this event."
+            await update.message.reply_text(error_msg)
+            history.append({"role": "assistant", "text": error_msg})
             return
 
         bot_response = parsed.get('bot_response', "Alright, I've updated your calendar!")
         await thinking_message.delete()
         await update.message.reply_text(bot_response)
         
+        history.append({"role": "assistant", "text": bot_response})
+        # Keep history size manageable
+        if len(history) > 10:
+            context.user_data['history'] = history[-10:]
+            
     except Exception as e:
         print(f"Error: {e}")
         await thinking_message.delete()
@@ -112,10 +150,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     token = os.getenv("TELEGRAM_TOKEN")
-    # Print to test if env is loaded
-    print("Loading env variables...")
-    print(os.getenv("TELEGRAM_TOKEN"))
-    print(os.getenv("GOOGLE_API_KEY"))
 
     if not token or token == "your_telegram_bot_token_here":
         print("Please configure your .env file with TELEGRAM_TOKEN and GOOGLE_API_KEY.")

@@ -12,7 +12,7 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 MODEL = "gemma-3-27b-it"
 
 class EventDetails(BaseModel):
-    action: Literal["create", "update", "delete"] = Field(description="The action the user wants to take.")
+    action: Literal["create", "update", "delete", "ask_clarification"] = Field(description="The action the user wants to take. Use 'ask_clarification' if something is unclear.")
     summary: Optional[str] = Field(None, description="The title or summary of the event.")
     start_time_iso: Optional[str] = Field(None, description="The start time in strict ISO 8601 without timezone attached (e.g., '2026-02-28T14:00:00')")
     end_time_iso: Optional[str] = Field(None, description="The end time in strict ISO 8601 without timezone attached (e.g., '2026-02-28T15:00:00'). Assume 1h default.")
@@ -21,7 +21,9 @@ class EventDetails(BaseModel):
     calendar: Optional[str] = Field(None, description="The name of the calendar to categorize the event into (e.g., 'Work', 'Personal').")
     is_valid: bool = Field(description="True if an event intent can be parsed, False if not.")
 
-def parse_event_intent(user_text: str, current_time_iso: str, existing_events: list = []) -> dict:
+def parse_event_intent(user_text: str, current_time_iso: str, existing_events: list = None, conversation_history: str = "") -> dict:
+    if existing_events is None:
+        existing_events = []
     if not GOOGLE_API_KEY:
         raise ValueError("GOOGLE_API_KEY not found.")
         
@@ -29,13 +31,13 @@ def parse_event_intent(user_text: str, current_time_iso: str, existing_events: l
     
     base_dir = os.path.dirname(os.path.abspath(__file__))
     prompt_path = os.path.join(base_dir, "prompts", "event_parsing.txt")
-    print(prompt_path)
     with open(prompt_path, "r", encoding="utf-8") as f:
         prompt_template = f.read()
 
     prompt = prompt_template.format(
         current_time_iso=current_time_iso,
-        existing_events=json.dumps(existing_events, indent=2)
+        existing_events=json.dumps(existing_events, indent=2),
+        conversation_history=conversation_history
     )
     
     try:
@@ -55,7 +57,6 @@ def parse_event_intent(user_text: str, current_time_iso: str, existing_events: l
         print(f"Raw LLM Response:\n{text}")
         
         parsed_data = json.loads(text)
-        # Ensure it fits the Pydantic model by passing it through (optional but safe)
         event_details = EventDetails(**parsed_data)
         return event_details.model_dump()
     except Exception as e:
